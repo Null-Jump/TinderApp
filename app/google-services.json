@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "126992455404",
+    "firebase_url": "https://tinderapp-kyj-22203-default-rtdb.firebaseio.com",
+    "project_id": "tinderapp-kyj-22203",
+    "storage_bucket": "tinderapp-kyj-22203.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:126992455404:android:9562446dc0601f7396b7c9",
+        "android_client_info": {
+          "package_name": "com.example.tinderapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "126992455404-tmpja71guhnrds198jcdj0o4rdbq8567.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0EzGHZFc4IlE2r6jNfE2eeplF-DjWZmQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "126992455404-tmpja71guhnrds198jcdj0o4rdbq8567.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

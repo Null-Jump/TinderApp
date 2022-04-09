@@ -58,7 +58,7 @@ class LoginActivity : AppCompatActivity() {
                     } else {
                         Toast.makeText(
                             this,
-                            "Fail Sign up, check you Email address",
+                            "Fail Sign up, check your Email address",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -182,5 +182,6 @@ class LoginActivity : AppCompatActivity() {
         user["userId"] = userId
         currentUserDB.updateChildren(user)
 
+        finish()
     }
 }

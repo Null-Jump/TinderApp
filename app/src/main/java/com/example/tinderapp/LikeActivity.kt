@@ -2,21 +2,30 @@ package com.example.tinderapp
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.yuyakaido.android.cardstackview.CardStackLayoutManager
+import com.yuyakaido.android.cardstackview.CardStackListener
+import com.yuyakaido.android.cardstackview.CardStackView
+import com.yuyakaido.android.cardstackview.Direction
 
-class LikeActivity : AppCompatActivity() {
+class LikeActivity : AppCompatActivity(), CardStackListener {
 
     private var auth: FirebaseAuth = FirebaseAuth.getInstance()
     private lateinit var userDB: DatabaseReference
+
+    private val adapter = CardItemAdapter()
+    private val cardItems = mutableListOf<CardItem>()
+
+    private val manager by lazy {
+        CardStackLayoutManager(this, this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,19 +38,66 @@ class LikeActivity : AppCompatActivity() {
         currentUserDB.addListenerForSingleValueEvent(object : ValueEventListener {
             //DB의 데이터가 수정되었을 때 실행되는 메소드
             override fun onDataChange(snapshot: DataSnapshot) {
-                // 받아온 이름이 null인지 확인
+                // 받아온 이름이 null 인지 확인
                 if (snapshot.child("name").value == null) {
                     showNameInputPopup()
                     return
-                } else { // 유저정보를 갱신
-
                 }
 
+                getUnSelectedUsers()
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+            override fun onCancelled(error: DatabaseError) {}
+        })
+
+        initCardStackView()
+    }
+
+    private fun initCardStackView(){
+        val stackView = findViewById<CardStackView>(R.id.cardStackView)
+
+        stackView.layoutManager = manager
+        stackView.adapter = adapter
+    }
+
+    private fun getUnSelectedUsers(){
+        //addChildEventListener() -> 리스너를 불러와서 사용하기 때문에 userDB 안에 모든 변동사항이 해당 리스너로 떨어짐
+        userDB.addChildEventListener(object: ChildEventListener{ // 다음 implement 들로 커스텀 가능함
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                if (// 불러온 ID 가 본 사용자와 같지 않아야함
+                    snapshot.child("userId").value != getCurrentUserID()
+                    // 본 사용자가 like 한 사용자인지 상대방 유저 정보에 추가되어있지 않아야함
+                    && snapshot.child("likedBy").child("like").hasChild(getCurrentUserID()).not()
+                    // 본 사용자가 disLike 한 사용자인지 상대방 유저 정보에 추가되어있지 않아야함
+                    && snapshot.child("likedBy").child("disLike").hasChild(getCurrentUserID()).not()){
+
+                    val userId = snapshot.child("userId").value.toString()
+                    var name = "undecided"
+                    if(snapshot.child("name").value != null){
+                        name = snapshot.child("name").value.toString()
+                    }
+
+                    cardItems.add(CardItem(userId, name))
+                    adapter.submitList(cardItems)
+                    adapter.notifyDataSetChanged()
+                }
             }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                // DB에 저장된 데이터들중 사용자의 이름이 변경된 경우 변경한 이름을 반영하는 코드
+                cardItems.find { it.userId == snapshot.key }?.let {
+                    it.name = snapshot.child("name").value.toString()
+                }
+
+                adapter.submitList(cardItems)
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {}
         })
     }
 
@@ -69,6 +125,8 @@ class LikeActivity : AppCompatActivity() {
         user["userId"] = userId
         user["name"] = name
         currentUserDB.updateChildren(user)
+
+        getUnSelectedUsers()
     }
 
     // 현재 User ID를 가져오기 위한 메소드
@@ -80,5 +138,53 @@ class LikeActivity : AppCompatActivity() {
 
         return auth.currentUser?.uid.orEmpty()
     }
+
+    private fun like(){
+        val card = cardItems[manager.topPosition - 1]
+        cardItems.removeFirst()
+
+        userDB.child(card.userId)
+            .child("likeBy")
+            .child("like")
+            .child(getCurrentUserID())
+            .setValue(true)
+
+        //Todo 매칭이 된 시점을 봐야함
+        Toast.makeText(this, "you like${card.name}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun disLike(){
+        val card = cardItems[manager.topPosition - 1]
+        cardItems.removeFirst()
+
+        userDB.child(card.userId)
+            .child("likeBy")
+            .child("disLike")
+            .child(getCurrentUserID())
+            .setValue(true)
+
+        Toast.makeText(this, "you dislike ${card.name}", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * CardStackListener()를 사용하기 위한 implement 들로 사용할 기능들을 커스텀 할 수 있다
+     */
+    override fun onCardDragging(direction: Direction?, ratio: Float) {    }
+
+    override fun onCardSwiped(direction: Direction?) {
+        when (direction){
+            Direction.Right -> like()
+            Direction.Left -> disLike()
+            else -> {}
+        }
+    }
+
+    override fun onCardRewound() {    }
+
+    override fun onCardCanceled() {    }
+
+    override fun onCardAppeared(view: View?, position: Int) {    }
+
+    override fun onCardDisappeared(view: View?, position: Int) {    }
 
 }

@@ -149,6 +149,7 @@ class LikeActivity : AppCompatActivity(), CardStackListener {
             .child(getCurrentUserID())
             .setValue(true)
 
+        saveMatchIfOtherUserLikedMe(card.userId)
         //Todo 매칭이 된 시점을 봐야함
         Toast.makeText(this, "you like${card.name}", Toast.LENGTH_SHORT).show()
     }
@@ -164,6 +165,33 @@ class LikeActivity : AppCompatActivity(), CardStackListener {
             .setValue(true)
 
         Toast.makeText(this, "you dislike ${card.name}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun saveMatchIfOtherUserLikedMe(otherUserId: String){
+        val otherUserDB = userDB.child(getCurrentUserID()).child("likedBy").child("like").child(otherUserId)
+        otherUserDB.addListenerForSingleValueEvent(object: ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.value == true){
+                    // 현재 유저의 DB에 매치가 되었다고 저장
+                    userDB.child(getCurrentUserID())
+                        .child("likeBy")
+                        .child("match")
+                        .child(otherUserId)
+                        .setValue(true)
+
+                    // 상대방의 DB에 매치가 되었다고 저장
+                    userDB.child(otherUserId)
+                        .child("likeBy")
+                        .child("match")
+                        .child(getCurrentUserID())
+                        .setValue(true)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+
+            }
+        })
     }
 
     /**
